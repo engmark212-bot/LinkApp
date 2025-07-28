@@ -1,0 +1,185 @@
+<img src="Imager.png">
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LinkApp</title>
+  <style>
+    body {
+      font-family: Comic Sans MS, cursive;
+      background-color: #f0f8ff;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #ff69b4;
+    }
+
+    .profile, .post, .new-post {
+      background-color: #fffacd;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"], textarea {
+      width: 90%;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    input[type="file"] {
+      margin: 5px 0;
+    }
+
+    button {
+      background-color: #90ee90;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .comments {
+      margin-top: 10px;
+      padding-left: 15px;
+      font-size: 14px;
+    }
+
+    img, video {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎈 Welcome to LinkApp!</h1>
+
+  <div class="profile">
+    <h2>My Profile</h2>
+    <p><strong>Name:</strong> Mark</p>
+  </div>
+
+  <div class="new-post">
+    <h2>Create a New Post</h2>
+    <input type="text" id="newPostAuthor" placeholder="Your name..." /><br>
+    <textarea id="newPostText" placeholder="What's on your mind?" rows="3"></textarea><br>
+    <input type="file" id="newPostMedia" accept="image/*,video/*" /><br>
+    <button onclick="createPost()">Post it!</button>
+  </div>
+
+  <div id="postContainer"></div>
+
+  <script>
+    let posts = JSON.parse(localStorage.getItem("kidspace_posts") || "[]");
+
+    function savePosts() {
+      localStorage.setItem("kidspace_posts", JSON.stringify(posts));
+    }
+
+    function createPost() {
+      const author = document.getElementById("newPostAuthor").value.trim();
+      const text = document.getElementById("newPostText").value.trim();
+      const fileInput = document.getElementById("newPostMedia");
+      const file = fileInput.files[0];
+
+      if (!author || !text) return;
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const mediaDataUrl = e.target.result;
+          const mediaType = file.type.startsWith("image") ? "image" : "video";
+          addPost(author, text, mediaDataUrl, mediaType);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        addPost(author, text, null, null);
+      }
+
+      document.getElementById("newPostAuthor").value = "";
+      document.getElementById("newPostText").value = "";
+      document.getElementById("newPostMedia").value = "";
+    }
+
+    function addPost(author, text, media, mediaType) {
+      const newPost = {
+        id: Date.now(),
+        author,
+        text,
+        media,
+        mediaType,
+        likes: 0,
+        comments: []
+      };
+      posts.unshift(newPost);
+      savePosts();
+      renderPosts();
+    }
+
+    function likePost(id) {
+      const post = posts.find(p => p.id === id);
+      if (post) {
+        post.likes++;
+        savePosts();
+        renderPosts();
+      }
+    }
+
+    function addComment(id) {
+      const input = document.getElementById("commentInput" + id);
+      const comment = input.value.trim();
+      if (!comment) return;
+
+      const post = posts.find(p => p.id === id);
+      if (post) {
+        post.comments.push(comment);
+        savePosts();
+        renderPosts();
+      }
+    }
+
+    function renderPosts() {
+      const container = document.getElementById("postContainer");
+      container.innerHTML = "";
+
+      posts.forEach(post => {
+        const div = document.createElement("div");
+        div.className = "post";
+
+        let mediaHtml = "";
+        if (post.media) {
+          if (post.mediaType === "image") {
+            mediaHtml = `<img src="${post.media}" alt="Post Image" />`;
+          } else if (post.mediaType === "video") {
+            mediaHtml = `<video controls><source src="${post.media}" type="video/mp4">Your browser does not support the video tag.</video>`;
+          }
+        }
+
+        div.innerHTML = `
+          <h3>${post.author}'s Post</h3>
+          <p>${post.text}</p>
+          ${mediaHtml}
+          <button onclick="likePost(${post.id})">👍 Like (${post.likes})</button>
+          <div class="comment-box">
+            <input type="text" id="commentInput${post.id}" placeholder="Write a comment..." />
+            <button onclick="addComment(${post.id})">Post</button>
+          </div>
+          <div class="comments">
+            ${post.comments.map(c => `<p>💬 ${c}</p>`).join("")}
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    renderPosts();
+  </script>
+
+</body>
+</html>
+
+
